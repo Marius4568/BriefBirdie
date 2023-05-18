@@ -1,5 +1,6 @@
 import { type NextPage } from "next";
 import Head from "next/head";
+import { LoadingPage } from "../components/loading"
 // import Link from "next/link";
 import { useUser, SignIn, UserButton } from '@clerk/nextjs'
 
@@ -40,11 +41,28 @@ const PostView = (props: PostWithUser) => {
   )
 }
 
+const Feed = () => {
+  const { data, isLoading: postsLoading } = api.posts.getAll.useQuery()
+
+  if (postsLoading) return <LoadingPage />;
+
+
+  if (!data) return (<div>Something went wrong</div>);
+
+  return (
+    <div className="flex flex-col">
+      {data?.map((fullPost) => (<PostView {...fullPost} key={fullPost.post.id} />))}
+    </div>
+  )
+}
+
 const Home: NextPage = () => {
-  const user = useUser()
-  const { data, isLoading } = api.posts.getAll.useQuery()
-  if (isLoading) return <div>Loading...</div>;
-  if (!data) return <div>Something went wrong</div>;
+
+  const { isLoaded: userLoaded, isSignedIn } = useUser()
+
+
+  if (!userLoaded) return <div />;
+
   return (
     <>
       <Head>
@@ -55,12 +73,10 @@ const Home: NextPage = () => {
       <main className="flex justify-center h-screen">
         <div className=" h-full border-x border-slate-400 w-full md:max-w-2xl">
           <div className="flex justify-center border-b border-slate-400 p-4">
-            {!user.isSignedIn && <div className=""><SignIn /></div>}
-            {user.isSignedIn && (<div className="flex items-center gap-x-4 w-full"><UserButton /><CreatePostWizard /></div>)}
+            {!isSignedIn && <div className=""><SignIn /></div>}
+            {isSignedIn && (<div className="flex items-center gap-x-4 w-full"><UserButton /><CreatePostWizard /></div>)}
           </div>
-          <div className="flex flex-col">
-            {data?.map((fullPost) => (<PostView {...fullPost} key={fullPost.post.id} />))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
