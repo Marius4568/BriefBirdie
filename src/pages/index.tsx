@@ -1,6 +1,6 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import { LoadingPage } from "../components/loading"
+import { LoadingPage, LoadingSpinner } from "../components/loading"
 // import Link from "next/link";
 import { useUser, SignIn, UserButton } from '@clerk/nextjs'
 
@@ -12,6 +12,7 @@ dayjs.extend(relativeTime);
 import { type RouterOutputs, api } from "~/utils/api";
 import Image from "next/image";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 const CreatePostWizard = () => {
   const { user } = useUser();
@@ -24,6 +25,14 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setInput("");
       void ctx.posts.getAll.invalidate()
+    },
+    onError: (e) => {
+      const errorMessage = e.data?.zodError?.fieldErrors.content
+      if (errorMessage && errorMessage[0]) {
+        toast.error(errorMessage[0])
+      } else {
+        toast.error('Failed to post please try again later')
+      }
     }
   });
 
@@ -32,18 +41,32 @@ const CreatePostWizard = () => {
   if (!user) return null;
 
   return (
-    <div>
+    <div className="flex">
       <input
         type="text"
         value={input}
         placeholder="type some emojis"
         className="bg-transparent p-1 grow outline-none"
         onChange={(e) => setInput(e.target.value)}
-        disabled={isPosting}
+        onKeyDown={(e) => {
+          e.preventDefault();
+          if (input !== "") {
+            mutate({ content: input })
+          }
+        }}
       />
-      <button onClick={() => mutate({ content: input })}>
-        Post
-      </button>
+      {
+        input !== '' && !isPosting && <button onClick={() => mutate({ content: input })}>
+          Post
+        </button>
+      }
+
+      {
+        isPosting &&
+        <div className="flex items-center justify-center">
+          <LoadingSpinner size={20} />
+        </div>
+      }
     </div>
   )
 }
